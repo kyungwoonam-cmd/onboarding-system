@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import sql from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
@@ -9,11 +9,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const today = new Date()
-    const { data: employees } = await supabaseAdmin
-      .from('employees')
-      .select('*')
+    const employees = await sql`SELECT * FROM employees`
 
-    if (!employees) return NextResponse.json({ success: true, sent: 0 })
+    if (!employees || employees.length === 0) {
+      return NextResponse.json({ success: true, sent: 0 })
+    }
 
     let sentCount = 0
 
@@ -24,13 +24,13 @@ export async function GET(req: NextRequest) {
       if (diffDays === 14 || diffDays === 7) {
         const type = diffDays === 14 ? '14days' : '7days'
 
-        const { data: alreadySent } = await supabaseAdmin
-          .from('email_logs')
-          .select('id')
-          .eq('employee_id', employee.id)
-          .eq('type', type)
-          .eq('status', 'sent')
-          .limit(1)
+        const alreadySent = await sql`
+          SELECT id FROM email_logs
+          WHERE employee_id = ${employee.id}
+          AND type = ${type}
+          AND status = 'sent'
+          LIMIT 1
+        `
 
         if (alreadySent && alreadySent.length > 0) continue
 
