@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { Employee } from '@/lib/types'
 
 const DEFAULT_QUESTIONS = [
@@ -26,40 +25,38 @@ export default function SurveyPage() {
   }, [token])
 
   const fetchEmployee = async () => {
-    const { data } = await supabase
-      .from('survey_tokens')
-      .select('*, employees(*)')
-      .eq('token', token)
-      .single()
-
-    if (!data) {
+    try {
+      const res = await fetch(`/api/survey/${token}`)
+      const data = await res.json()
+      if (data.error) {
+        setError(data.error)
+      } else if (data.used) {
+        setSubmitted(true)
+      } else {
+        setEmployee(data.employee)
+      }
+    } catch (e) {
       setError('유효하지 않은 설문 링크입니다.')
-    } else if (data.used) {
-      setSubmitted(true)
-    } else {
-      setEmployee(data.employees)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!employee) return
 
-    const { error: err1 } = await supabase.from('survey_responses').insert([{
-      employee_id: employee.id,
-      token: token,
-      responses: answers,
-      submitted_at: new Date().toISOString(),
-    }])
+    const res = await fetch(`/api/survey/${token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employeeId: employee.id, answers }),
+    })
 
-    if (err1) {
+    if (res.ok) {
+      setSubmitted(true)
+    } else {
       alert('제출 중 오류가 발생했습니다.')
-      return
     }
-
-    await supabase.from('survey_tokens').update({ used: true }).eq('token', token)
-    setSubmitted(true)
   }
 
   if (loading) return <div style={{ padding: '48px', textAlign: 'center' }}>로딩 중...</div>
