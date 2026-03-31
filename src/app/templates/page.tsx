@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { EmailTemplate, SurveyTemplate } from '@/lib/types'
+import { EmailTemplate } from '@/lib/types'
 
 export default function TemplatesPage() {
   const router = useRouter()
@@ -64,7 +64,7 @@ export default function TemplatesPage() {
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
           {(['email', 'survey'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
-              padding: '8px 20px', borderRadius: '8px', cursor: 'pointer',
+              padding: '8px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               background: tab === t ? '#4F46E5' : 'white',
               color: tab === t ? 'white' : '#666',
               border: tab === t ? 'none' : '1px solid #ddd'
