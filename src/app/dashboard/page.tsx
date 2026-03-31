@@ -11,27 +11,36 @@ export default function DashboardPage() {
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([])
   const [surveyResponses, setSurveyResponses] = useState<SurveyResponse[]>([])
   const [loading, setLoading] = useState(true)
+  const [authed, setAuthed] = useState(false)
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (localStorage.getItem('admin_auth') !== 'true') {
-        router.push('/')
-        return
-      }
+    const auth = localStorage.getItem('admin_auth')
+    if (auth !== 'true') {
+      router.push('/')
+      return
     }
+    setAuthed(true)
     fetchData()
   }, [])
 
   const fetchData = async () => {
-    const [empRes, logRes, surveyRes] = await Promise.all([
-      supabase.from('employees').select('*').order('join_date', { ascending: true }),
-      supabase.from('email_logs').select('*'),
-      supabase.from('survey_responses').select('*'),
-    ])
-    setEmployees(empRes.data || [])
-    setEmailLogs(logRes.data || [])
-    setSurveyResponses(surveyRes.data || [])
-    setLoading(false)
+    try {
+      const [empRes, logRes, surveyRes] = await Promise.all([
+        supabase.from('employees').select('*').order('join_date', { ascending: true }),
+        supabase.from('email_logs').select('*'),
+        supabase.from('survey_responses').select('*'),
+      ])
+      if (empRes.error) console.error('employees error:', empRes.error)
+      if (logRes.error) console.error('email_logs error:', logRes.error)
+      if (surveyRes.error) console.error('survey_responses error:', surveyRes.error)
+      setEmployees(empRes.data || [])
+      setEmailLogs(logRes.data || [])
+      setSurveyResponses(surveyRes.data || [])
+    } catch (e) {
+      console.error('fetchData error:', e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const getEmailStatus = (employeeId: string, type: string) => {
@@ -63,7 +72,7 @@ export default function DashboardPage() {
     }
   }
 
-  if (loading) return <div style={{ padding: '48px', textAlign: 'center' }}>로딩 중...</div>
+  if (!authed || loading) return <div style={{ padding: '48px', textAlign: 'center' }}>로딩 중...</div>
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
