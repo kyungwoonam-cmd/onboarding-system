@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { Employee, SurveyResponse } from '@/lib/types'
 
 export default function ResponsesPage() {
@@ -13,23 +12,24 @@ export default function ResponsesPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (localStorage.getItem('admin_auth') !== 'true') {
-        router.push('/')
-        return
-      }
+    if (localStorage.getItem('admin_auth') !== 'true') {
+      router.push('/')
+      return
     }
     fetchData()
   }, [])
 
   const fetchData = async () => {
-    const [empRes, surveyRes] = await Promise.all([
-      supabase.from('employees').select('*'),
-      supabase.from('survey_responses').select('*').order('submitted_at', { ascending: false }),
-    ])
-    setEmployees(empRes.data || [])
-    setResponses(surveyRes.data || [])
-    setLoading(false)
+    try {
+      const res = await fetch('/api/responses-data')
+      const data = await res.json()
+      setEmployees(data.employees || [])
+      setResponses(data.responses || [])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const getEmployee = (id: string) => employees.find(e => e.id === id)
