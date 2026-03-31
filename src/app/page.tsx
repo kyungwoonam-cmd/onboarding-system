@@ -1,21 +1,31 @@
 'use client'
-
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
+    setLoading(true)
+    setError('')
+
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    })
+
+    if (res.ok) {
       localStorage.setItem('admin_auth', 'true')
       router.push('/dashboard')
     } else {
       setError('비밀번호가 올바르지 않습니다.')
     }
+    setLoading(false)
   }
 
   return (
@@ -42,12 +52,12 @@ export default function LoginPage() {
             }}
           />
           {error && <p style={{ color: 'red', margin: '0 0 12px', fontSize: '14px' }}>{error}</p>}
-          <button type="submit" style={{
+          <button type="submit" disabled={loading} style={{
             width: '100%', padding: '12px', fontSize: '16px',
             background: '#4F46E5', color: 'white', border: 'none',
             borderRadius: '8px', cursor: 'pointer'
           }}>
-            로그인
+            {loading ? '확인 중...' : '로그인'}
           </button>
         </form>
       </div>
