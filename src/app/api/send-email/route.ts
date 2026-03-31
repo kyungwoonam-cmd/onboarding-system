@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import sql from '@/lib/supabase'
 import { resend } from '@/lib/resend'
 import { randomUUID } from 'crypto'
 
@@ -7,28 +7,16 @@ export async function POST(req: NextRequest) {
   try {
     const { employeeId, type } = await req.json()
 
-    const { data: employee } = await supabaseAdmin
-      .from('employees')
-      .select('*')
-      .eq('id', employeeId)
-      .single()
-
+    const employees = await sql`SELECT * FROM employees WHERE id = ${employeeId} LIMIT 1`
+    const employee = employees[0]
     if (!employee) {
       return NextResponse.json({ error: '입사자를 찾을 수 없습니다.' }, { status: 404 })
     }
 
-    const { data: templates } = await supabaseAdmin
-      .from('email_templates')
-      .select('*')
-      .eq('type', type)
-      .limit(1)
+    const templates = await sql`SELECT * FROM email_templates WHERE type = ${type} LIMIT 1`
 
     const token = randomUUID()
-    await supabaseAdmin.from('survey_tokens').insert([{
-      token,
-      employee_id: employeeId,
-      used: false,
-    }])
+    await sql`INSERT INTO survey_tokens (token, employee_id, used) VALUES (${token}, ${employeeId}, false)`
 
     const surveyLink = `${process.env.NEXT_PUBLIC_BASE_URL}/survey/${token}`
 
@@ -61,13 +49,7 @@ export async function POST(req: NextRequest) {
       html,
     })
 
-    await supabaseAdmin.from('email_logs').insert([{
-      employee_id: employeeId,
-      template_id: templates?.[0]?.id || null,
-      type,
-      status: 'sent',
-      sent_at: new Date().toISOString(),
-    }])
+    await sql`INSERT INTO email_logs (employee_id, template_id, type, status, sent_at) VALUES (${employeeId}, ${templates?.[0]?.id || null}, ${type}, 'sent', NOW())`
 
     return NextResponse.json({ success: true })
   } catch (error) {
