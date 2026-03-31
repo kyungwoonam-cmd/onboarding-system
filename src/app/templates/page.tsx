@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { EmailTemplate } from '@/lib/types'
+import { EmailTemplate, SurveyTemplate } from '@/lib/types'
 
 export default function TemplatesPage() {
   const router = useRouter()
