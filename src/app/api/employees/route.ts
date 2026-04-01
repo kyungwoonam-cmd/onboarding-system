@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'  // ✅ 1. 이 줄 추가
 import sql from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
@@ -8,6 +9,7 @@ export async function POST(req: NextRequest) {
       INSERT INTO employees (name, organization, phone, email, join_date)
       VALUES (${body.name}, ${body.organization}, ${body.phone}, ${body.email}, ${body.join_date})
     `
+    revalidatePath('/dashboard')  // ✅ 2. 이 줄 추가
     return NextResponse.json({ success: true })
   } catch (e) {
     console.error(e)
