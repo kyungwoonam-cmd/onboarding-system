@@ -1,5 +1,4 @@
 'use client'
-
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -21,6 +20,7 @@ export default function NewEmployeePage() {
       })
       if (res.ok) {
         alert('신규입사자가 등록되었습니다!')
+        router.refresh()
         router.push('/dashboard')
       } else {
         alert('등록 중 오류가 발생했습니다.')
