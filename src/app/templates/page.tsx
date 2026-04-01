@@ -2,44 +2,42 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { EmailTemplate, SurveyTemplate } from '@/lib/types'
+import { EmailTemplate } from '@/lib/types'
 
 export default function TemplatesPage() {
   const router = useRouter()
   const [tab, setTab] = useState<'email' | 'survey'>('email')
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([])
-  const [surveyTemplates, setSurveyTemplates] = useState<SurveyTemplate[]>([])
   const [editing, setEditing] = useState<EmailTemplate | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (localStorage.getItem('admin_auth') !== 'true') {
-        router.push('/')
-        return
-      }
+    if (localStorage.getItem('admin_auth') !== 'true') {
+      router.push('/')
+      return
     }
     fetchData()
   }, [])
 
   const fetchData = async () => {
-    const [emailRes, surveyRes] = await Promise.all([
-      supabase.from('email_templates').select('*').order('type'),
-      supabase.from('survey_templates').select('*'),
-    ])
-    setEmailTemplates(emailRes.data || [])
-    setSurveyTemplates(surveyRes.data || [])
-    setLoading(false)
+    try {
+      const res = await fetch('/api/templates-data')
+      const data = await res.json()
+      setEmailTemplates(data.emailTemplates || [])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const saveEmailTemplate = async () => {
     if (!editing) return
-    if (editing.id) {
-      await supabase.from('email_templates').update(editing).eq('id', editing.id)
-    } else {
-      await supabase.from('email_templates').insert([editing])
-    }
+    await fetch('/api/templates-data', {
+      method: editing.id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editing),
+    })
     alert('저장되었습니다!')
     setEditing(null)
     fetchData()
@@ -119,7 +117,7 @@ export default function TemplatesPage() {
             <label style={{ fontSize: '14px', color: '#666' }}>메일 제목</label>
             <input value={editing.subject} onChange={e => setEditing({ ...editing, subject: e.target.value })}
               style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px', boxSizing: 'border-box', margin: '6px 0 16px' }} />
-            <label style={{ fontSize: '14px', color: '#666' }}>메일 본문 (HTML 가능, {`{{name}}`} {`{{join_date}}`} {`{{survey_link}}`} 사용 가능)</label>
+            <label style={{ fontSize: '14px', color: '#666' }}>메일 본문</label>
             <textarea value={editing.body} onChange={e => setEditing({ ...editing, body: e.target.value })} rows={10}
               style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '8px', boxSizing: 'border-box', margin: '6px 0 16px', fontFamily: 'monospace' }} />
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
